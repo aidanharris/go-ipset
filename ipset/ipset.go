@@ -25,11 +25,10 @@ import (
 	"strconv"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/coreos/go-semver/semver"
+	"github.com/Masterminds/semver"
 )
 
-const minIpsetVersion = "6.0.0"
+const minIpsetVersion = ">= 6.0.0"
 
 var (
 	ipsetPath            string
@@ -64,7 +63,7 @@ func initCheck() error {
 		ipsetPath = path
 		supportedVersion, err := getIpsetSupportedVersion()
 		if err != nil {
-			log.Warnf("Error checking ipset version, assuming version at least 6.0.0: %v", err)
+			//log.Warnf("Error checking ipset version, assuming version at least 6.0.0: %v", err)
 			supportedVersion = true
 		}
 		if supportedVersion {
@@ -134,10 +133,15 @@ func (s *IPSet) Refresh(entries []string) error {
 		return err
 	}
 	for _, entry := range entries {
+		//out, err := exec.Command(ipsetPath, "add", tempName, entry, "-exist").CombinedOutput()
 		out, err := exec.Command(ipsetPath, "add", tempName, entry, "-exist").CombinedOutput()
+		_ = out
+		_ = err
+		/*
 		if err != nil {
 			log.Errorf("error adding entry %s to set %s: %v (%s)", entry, tempName, err, out)
 		}
+		*/
 	}
 	err = Swap(tempName, s.Name)
 	if err != nil {
@@ -261,7 +265,7 @@ func destroyAll() error {
 }
 
 func getIpsetSupportedVersion() (bool, error) {
-	minVersion, err := semver.NewVersion(minIpsetVersion)
+	minVersion, err := semver.NewConstraint(minIpsetVersion)
 	if err != nil {
 		return false, err
 	}
@@ -277,7 +281,7 @@ func getIpsetSupportedVersion() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if version.LessThan(*minVersion) {
+	if ! minVersion.Check(version) {
 		return false, nil
 	}
 	return true, nil
